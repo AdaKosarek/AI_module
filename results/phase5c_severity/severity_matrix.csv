@@ -1,0 +1,6 @@
+,shelf_picking,front_zone_bin,special_zone,floor_block,pallet_rack
+shelf_picking,0,1,1,2,2
+front_zone_bin,1,0,2,2,3
+special_zone,1,2,0,2,2
+floor_block,2,2,2,0,1
+pallet_rack,3,3,2,1,0

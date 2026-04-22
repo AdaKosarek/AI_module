@@ -1,0 +1,4 @@
+model,total_weighted_error,weighted_error_rate,unweighted_error_count,twe_shelf_picking,twe_front_zone_bin,twe_special_zone,twe_floor_block,twe_pallet_rack
+dt,178,0.027,127,42,75,52,8,1
+rf,182,0.0276,117,23,78,66,10,5
+xgb,129,0.0196,89,21,68,36,2,2

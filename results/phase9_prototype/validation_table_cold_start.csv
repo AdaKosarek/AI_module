@@ -1,0 +1,11 @@
+product_idx,true_class,predicted_class,confidence,knn_majority_class,knn_agreement,correct
+7110,shelf_picking,shelf_picking,0.6399,shelf_picking,0.8,True
+17862,shelf_picking,front_zone_bin,0.6472,shelf_picking,0.4,False
+13245,front_zone_bin,front_zone_bin,0.6759,front_zone_bin,1.0,True
+20148,front_zone_bin,shelf_picking,0.6119,shelf_picking,1.0,False
+2840,special_zone,special_zone,0.9999,special_zone,1.0,True
+16120,special_zone,special_zone,1.0,special_zone,1.0,True
+25715,floor_block,floor_block,0.8828,front_zone_bin,0.4,True
+19282,floor_block,floor_block,0.8796,shelf_picking,0.0,True
+23847,pallet_rack,pallet_rack,0.9998,pallet_rack,1.0,True
+17276,pallet_rack,pallet_rack,1.0,pallet_rack,1.0,True
