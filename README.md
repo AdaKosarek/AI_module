@@ -36,7 +36,7 @@ bakalarka/
 │   ├── prototype_api.py        # hlavní prototyp — klient volající API přes HTTP
 │   └── prototype_backup.py     # záloha — přímý přístup k modelům bez API
 │
-├── src/                        # výpočetní jádro (znovupoužitelné funkce)
+├── src/                        # znovupoužitelné funkce, výpočet
 │   ├── __init__.py
 │   ├── data_preparation.py     # načtení a propojení surových dat
 │   ├── cleaning.py             # čištění a seskupení kategorií
@@ -47,30 +47,30 @@ bakalarka/
 │   ├── error_severity.py       # analýza závažnosti chyb
 │   ├── similarity.py           # KNN vyhledávání podobných produktů
 │   ├── shap_analysis.py        # SHAP interpretace modelu
-│   └── cold_start.py           # cold-start simulace bez obrátkovosti
+│   └── cold_start.py           # cold start simulace bez obrátkovosti
 │
 ├── scripts/                    # spouštěcí skripty jednotlivých fází
-│   ├── run_phase1.py           # Fáze 1: načtení dat
-│   ├── run_phase2.py           # Fáze 2: čištění dat
-│   ├── run_phase3.py           # Fáze 3: labeling skladových tříd
-│   ├── run_phase4.py           # Fáze 4: feature engineering
-│   ├── run_phase5.py           # Fáze 5: trénink modelů (DT, RF, XGB)
-│   ├── run_phase5b.py          # Fáze 5b: experiment s šumem
-│   ├── run_phase5c.py          # Fáze 5c: závažnost chyb
-│   ├── run_phase6.py           # Fáze 6: KNN podobnost
-│   ├── run_phase7.py           # Fáze 7: SHAP interpretace
-│   ├── run_phase8.py           # Fáze 8: cold-start experiment
-│   ├── run_phase9.py           # Fáze 9: pokyny ke spuštění prototypu
-│   ├── run_phase9_prepare.py   # Fáze 9: trénink cold-start modelů
-│   ├── run_phase9_validation.py # Fáze 9: validační scénář 10 produktů
+│   ├── run_phase1.py
+│   ├── run_phase2.py
+│   ├── run_phase3.py
+│   ├── run_phase4.py
+│   ├── run_phase5.py
+│   ├── run_phase5b.py
+│   ├── run_phase5c.py
+│   ├── run_phase6.py
+│   ├── run_phase7.py
+│   ├── run_phase8.py
+│   ├── run_phase9.py
+│   ├── run_phase9_prepare.py
+│   ├── run_phase9_validation.py
 │   └── verify_api.py           # integrační testy API (19 kontrol)
 │
 ├── notebooks/                  # interaktivní analýza (Jupyter)
-│   ├── 01_eda.ipynb            # analýza dat
-│   ├── 02_cleaning.ipynb       # čištění
-│   ├── 03_labeling.ipynb       # přiřazení skladových tříd
+│   ├── 01_eda.ipynb 
+│   ├── 02_cleaning.ipynb
+│   ├── 03_labeling.ipynb
 │   ├── 04_feature_engineering.ipynb
-│   ├── 05_modeling.ipynb       # srovnání modelů
+│   ├── 05_modeling.ipynb
 │   ├── 05b_noise_experiment.ipynb
 │   ├── 05c_error_severity.ipynb
 │   ├── 06_knn_similarity.ipynb
@@ -127,6 +127,7 @@ bakalarka/
 | **7** | SHAP interpretace | Vysvětlení predikcí |
 | **8** | Cold-start simulace | ML vs pravidla u nových produktů bez historie |
 | **9** | Prototyp | Streamlit aplikace + REST API (FastAPI) + validace 10 produktů |
+| **10** | Rozšíření API | Batch endpoint `/predict/batch` |
 
 ---
 
@@ -205,6 +206,7 @@ uv run python scripts/run_phase7.py
 uv run python scripts/run_phase8.py
 uv run python scripts/run_phase9_prepare.py
 uv run python scripts/run_phase9_validation.py
+uv run python scripts/run_business_value.py
 ```
 
 **API integrační testy:**

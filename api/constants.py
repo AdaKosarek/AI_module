@@ -35,3 +35,5 @@ CLASS_ORDER_LE = [
 ]
 
 NUMERIC_NO_TURNOVER = [f for f in NUMERIC_FEATURES if f != "daily_turnover"]
+
+MAX_BATCH_SIZE = 100

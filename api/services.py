@@ -3,12 +3,14 @@
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
 import joblib
 import numpy as np
 import pandas as pd
+from pydantic import ValidationError
 from sklearn.preprocessing import LabelEncoder
 
 _API_DIR = Path(__file__).resolve().parent
@@ -25,7 +27,16 @@ from api.constants import (
     CLASS_ORDER_LE,
     NUMERIC_NO_TURNOVER,
 )
-from api.schemas import ProductInput, PredictionResponse, SimilarProduct
+from api.schemas import (
+    ProductInput,
+    PredictionResponse,
+    SimilarProduct,
+    BatchPredictRequest,
+    BatchPredictResponse,
+    BatchItemOk,
+    BatchItemError,
+    BatchSummary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -234,8 +245,9 @@ class PredictionService:
         self, product: ProductInput, response: PredictionResponse
     ) -> None:
         self.audit_logger.info(
-            "PREDICT | cold_start=%s | input=%s | "
+            "PREDICT | id=%s | cold_start=%s | input=%s | "
             "result=%s (%.1f%%) | knn=%s",
+            product.product_id or "-",
             product.cold_start,
             {
                 "weight": product.product_weight_g,
@@ -248,4 +260,47 @@ class PredictionService:
             response.recommended_zone,
             response.confidence * 100,
             response.knn_agreement,
+        )
+
+    def predict_batch(self, request: BatchPredictRequest) -> BatchPredictResponse:
+        t0 = time.perf_counter()
+        n = len(request.products)
+        self.audit_logger.info("BATCH_START | n=%d", n)
+
+        results: list = []
+        ok_count = 0
+
+        for idx, raw in enumerate(request.products):
+            pid = raw.get("product_id") if isinstance(raw, dict) else None
+            try:
+                product = ProductInput.model_validate(raw)
+                prediction = self.predict(product)
+                results.append(BatchItemOk(
+                    index=idx,
+                    product_id=product.product_id,
+                    prediction=prediction,
+                ))
+                ok_count += 1
+            except ValidationError as e:
+                results.append(BatchItemError(
+                    index=idx,
+                    product_id=pid,
+                    errors=e.errors(),
+                ))
+
+        duration_ms = (time.perf_counter() - t0) * 1000
+        err_count = n - ok_count
+        self.audit_logger.info(
+            "BATCH_END | n=%d | ok=%d | err=%d | took=%.1fms",
+            n, ok_count, err_count, duration_ms,
+        )
+
+        return BatchPredictResponse(
+            results=results,
+            summary=BatchSummary(
+                total=n,
+                ok_count=ok_count,
+                error_count=err_count,
+                duration_ms=round(duration_ms, 1),
+            ),
         )

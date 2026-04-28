@@ -1,0 +1,8 @@
+product_idx,true_class,true_class_cz,true_distance,rules_class,rules_class_cz,rules_distance,ml_class,ml_class_cz,ml_distance,savings_m,category_group,category_label
+28029,front_zone_bin,Přední zóna,15,shelf_picking,Police,45,front_zone_bin,Přední zóna,15,30,toys_baby,Budoucí hit
+21702,front_zone_bin,Přední zóna,15,shelf_picking,Police,45,front_zone_bin,Přední zóna,15,30,beauty_health,Budoucí hit
+4363,front_zone_bin,Přední zóna,15,shelf_picking,Police,45,shelf_picking,Police,45,0,home_garden,Nepoznaný hit
+25145,pallet_rack,Paleta,80,pallet_rack,Paleta,80,pallet_rack,Paleta,80,0,toys_baby,Těžký produkt
+23469,floor_block,Bloková zóna,80,floor_block,Bloková zóna,80,floor_block,Bloková zóna,80,0,toys_baby,Objemný
+23603,special_zone,Speciální zóna,45,special_zone,Speciální zóna,45,special_zone,Speciální zóna,45,0,electronics,Drahý
+19357,shelf_picking,Police,45,shelf_picking,Police,45,shelf_picking,Police,45,0,home_garden,Běžný produkt

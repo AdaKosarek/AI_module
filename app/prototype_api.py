@@ -14,6 +14,13 @@ logger = logging.getLogger(__name__)
 
 API_URL = "http://localhost:8000"
 
+LIMIT_WEIGHT_G = 50000
+LIMIT_DIMENSION_CM = 150
+LIMIT_PRICE_BRL = 10000
+LIMIT_VOLUME_CM3 = 400_000
+LIMIT_TURNOVER = 10.0
+REQUEST_TIMEOUT_S = 30
+
 STORAGE_CLASS_CZ = {
     "shelf_picking": "Police na ruční vychystávání",
     "front_zone_bin": "Přihrádka v přední zóně",
@@ -30,21 +37,20 @@ CURRENCY_RATES = {
     "GBP": 7.20,
 }
 
-# Nacte seznam kategorii z API endpointu /categories.
 @st.cache_data
-def load_categories() -> list[str]:
-
+def load_categories() -> tuple[list[str], bool]:
     try:
         resp = requests.get(f"{API_URL}/categories", timeout=5)
         resp.raise_for_status()
-        return resp.json()["categories"]
+        return resp.json()["categories"], False
     except requests.RequestException as exc:
-        logger.warning("Nelze nacist /categories z API (%s), pouzivam fallback.", exc)
-        return [
+        logger.error("Nelze nacist /categories z API: %s", exc)
+        fallback = [
             "electronics", "furniture", "home_appliances", "beauty_health",
             "sports_leisure", "fashion", "toys_baby", "books_media",
             "home_garden", "food_drinks", "housewares", "stationery", "other",
         ]
+        return fallback, True
 
 
 st.set_page_config(page_title="Skladová lokace (API)", layout="wide", page_icon="\U0001F310")
@@ -73,25 +79,45 @@ st.markdown(
     "posílá HTTP požadavky na REST API (`/predict`)."
 )
 
-categories = load_categories()
+categories, categories_from_fallback = load_categories()
+if categories_from_fallback:
+    st.sidebar.warning(
+        "Seznam kategorií se nepodařilo načíst z API — "
+        "používá se zástupný seznam. Ověřte, že API běží na "
+        f"`{API_URL}`."
+    )
 
 with st.form("product_form"):
     col1, col2 = st.columns(2)
     with col1:
-        weight = st.number_input("Hmotnost (g)", min_value=1, max_value=50000, value=500, step=10)
-        length = st.number_input("Délka (cm)", min_value=1, max_value=150, value=20, step=1)
-        height = st.number_input("Výška (cm)", min_value=1, max_value=150, value=10, step=1)
+        weight = st.number_input(
+            "Hmotnost (g)", min_value=1, value=500, step=10,
+            help=f"Limit modelu: {LIMIT_WEIGHT_G} g (mimo trénovací distribuci API odmítne).",
+        )
+        length = st.number_input(
+            "Délka (cm)", min_value=1, value=20, step=1,
+            help=f"Limit modelu: {LIMIT_DIMENSION_CM} cm.",
+        )
+        height = st.number_input(
+            "Výška (cm)", min_value=1, value=10, step=1,
+            help=f"Limit modelu: {LIMIT_DIMENSION_CM} cm.",
+        )
     with col2:
-        width = st.number_input("Šířka (cm)", min_value=1, max_value=150, value=15, step=1)
+        width = st.number_input(
+            "Šířka (cm)", min_value=1, value=15, step=1,
+            help=f"Limit modelu: {LIMIT_DIMENSION_CM} cm.",
+        )
         category = st.selectbox("Kategorie", categories, index=0)
         currency = st.selectbox("Měna", list(CURRENCY_RATES.keys()), index=3)
         price_input = st.number_input(
-            f"Cena produktu", min_value=1.0, max_value=10000.0, value=50.0, step=5.0,
+            "Cena produktu", min_value=1.0, value=50.0, step=5.0,
+            help=f"Limit modelu po převodu na BRL: {LIMIT_PRICE_BRL}.",
         )
 
     if not cold_start:
         turnover = st.number_input(
-            "Denní obrátkovost", min_value=0.0, max_value=10.0, value=0.0, step=0.01,
+            "Denní obrátkovost", min_value=0.0, value=0.0, step=0.01,
+            help=f"Limit modelu: {LIMIT_TURNOVER}.",
         )
     else:
         turnover = 0.0
@@ -106,6 +132,45 @@ if currency != "BRL":
     st.caption(f"Převod: {price_input:.1f} {currency} = {price:.1f} BRL")
 
 if submitted:
+    pre_errors = []
+    if weight > LIMIT_WEIGHT_G:
+        pre_errors.append(
+            f"Hmotnost {weight} g překračuje limit modelu ({LIMIT_WEIGHT_G} g)."
+        )
+    if length > LIMIT_DIMENSION_CM:
+        pre_errors.append(
+            f"Délka {length} cm překračuje limit modelu ({LIMIT_DIMENSION_CM} cm)."
+        )
+    if height > LIMIT_DIMENSION_CM:
+        pre_errors.append(
+            f"Výška {height} cm překračuje limit modelu ({LIMIT_DIMENSION_CM} cm)."
+        )
+    if width > LIMIT_DIMENSION_CM:
+        pre_errors.append(
+            f"Šířka {width} cm překračuje limit modelu ({LIMIT_DIMENSION_CM} cm)."
+        )
+    if price > LIMIT_PRICE_BRL:
+        pre_errors.append(
+            f"Cena po převodu {price:.0f} BRL překračuje limit modelu ({LIMIT_PRICE_BRL} BRL)."
+        )
+    if turnover > LIMIT_TURNOVER:
+        pre_errors.append(
+            f"Denní obrátkovost {turnover} překračuje limit modelu ({LIMIT_TURNOVER})."
+        )
+    volume_cm3 = length * height * width
+    if volume_cm3 > LIMIT_VOLUME_CM3:
+        pre_errors.append(
+            f"Kombinovaný objem (D x V x Š) {volume_cm3} cm3 překračuje "
+            f"limit modelu ({LIMIT_VOLUME_CM3} cm3). "
+            f"Limitace vyplývá z rozsahu dat, na kterých byl model vytrénován."
+        )
+    if pre_errors:
+        st.error("Vstup nelze odeslat na API kvůli nepovoleným hodnotám:")
+        for msg in pre_errors:
+            st.error(f"- {msg}")
+        logger.warning("Pre-submit validace selhala: %s", pre_errors)
+        st.stop()
+
     payload = {
         "product_weight_g": weight,
         "product_length_cm": length,
@@ -117,18 +182,69 @@ if submitted:
         "cold_start": cold_start,
     }
 
+    resp = None
     with st.spinner("Odesílám dotaz na API..."):
         try:
-            resp = requests.post(f"{API_URL}/predict", json=payload, timeout=30)
+            resp = requests.post(
+                f"{API_URL}/predict", json=payload, timeout=REQUEST_TIMEOUT_S
+            )
             resp.raise_for_status()
-        except requests.ConnectionError:
-            st.error("API nedostupné. Spusťte server: `uv run uvicorn api.main:app`")
+        except requests.ConnectionError as exc:
+            logger.error("API nedostupne (ConnectionError): %s", exc)
+            st.error(
+                "API nedostupné — spojení se nepodařilo navázat. "
+                "Spusťte server: `uv run uvicorn api.main:app`"
+            )
             st.stop()
-        except requests.HTTPError as e:
-            st.error(f"API chyba: {e.response.status_code} — {e.response.text}")
+        except requests.Timeout as exc:
+            logger.error("API timeout po %ss: %s", REQUEST_TIMEOUT_S, exc)
+            st.error(
+                f"API neodpovědělo do {REQUEST_TIMEOUT_S} sekund. "
+                "Server může být přetížený nebo nedostupný, zkuste to znovu."
+            )
+            st.stop()
+        except requests.HTTPError as exc:
+            status_code = exc.response.status_code
+            body_text = exc.response.text
+            logger.error("API vratil HTTP %s: %s", status_code, body_text)
+            if status_code == 422:
+                try:
+                    details = exc.response.json().get("detail", [])
+                except ValueError:
+                    details = []
+                if details:
+                    st.error("API odmítlo požadavek (422 — validační chyba):")
+                    for d in details:
+                        loc_parts = [
+                            str(x) for x in d.get("loc", []) if x != "body"
+                        ]
+                        loc_str = " > ".join(loc_parts) if loc_parts else "request"
+                        msg = d.get("msg", "(bez popisu)")
+                        st.error(f"- {loc_str}: {msg}")
+                else:
+                    st.error(f"API odmítlo požadavek (422): {body_text}")
+            else:
+                st.error(f"API chyba {status_code}: {body_text}")
+            st.stop()
+        except requests.RequestException as exc:
+            logger.error(
+                "API request selhal: %s: %s", type(exc).__name__, exc
+            )
+            st.error(
+                f"Síťová chyba při volání API ({type(exc).__name__}): {exc}"
+            )
             st.stop()
 
-    data = resp.json()
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        body_preview = (resp.text or "")[:500] if resp is not None else ""
+        logger.error("Server vratil neJSON odpoved: %s", body_preview)
+        st.error(
+            "API vrátilo neplatnou odpověď (není JSON). "
+            "Server pravděpodobně neběží správně — zkontrolujte logy."
+        )
+        st.stop()
 
     st.markdown("---")
 
@@ -172,5 +288,5 @@ if submitted:
     st.subheader("Vysvětlení")
     st.info(data["explanation"])
 
-    with st.expander("Raw API response (JSON)"):
+    with st.expander("Raw API odpověď (JSON)"):
         st.json(data)

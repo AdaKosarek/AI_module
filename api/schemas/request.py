@@ -1,7 +1,8 @@
+"""Pydantic modely request."""
 
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-from api.constants import CATEGORY_GROUPS
+from api.constants import CATEGORY_GROUPS, MAX_BATCH_SIZE
 
 # Limity odvozene z trenovacich dat
 MAX_VOLUME_CM3 = 400_000
@@ -11,12 +12,11 @@ MAX_DIMENSION_CM = 150
 
 
 class ProductInput(BaseModel):
-    """Vstupni data produktu pro predikci skladove lokace.
 
-    Limity jsou odvozene z trenovacich dat — vstupy mimo tyto rozsahy
-    by zpusobily OOD (out-of-distribution) extrapolaci modelu.
-    """
-
+    product_id: Optional[str] = Field(
+        default=None, max_length=64,
+        description="Volitelné ID z IS — vrací se v response pro spárování.",
+    )
     product_weight_g: float = Field(
         gt=0, le=MAX_WEIGHT_G,
         description="Hmotnost v gramech (trénovací max 40 425 g)",
@@ -65,8 +65,7 @@ class ProductInput(BaseModel):
                 f"Objem {volume:.0f} cm3 (D x V x S = "
                 f"{self.product_length_cm} x {self.product_height_cm} x "
                 f"{self.product_width_cm}) přesahuje povolený limit "
-                f"{MAX_VOLUME_CM3} cm3. Trénovací data neobsahují "
-                f"produkty s takovými rozměry."
+                f"{MAX_VOLUME_CM3} cm3."
             )
         return self
 
@@ -82,6 +81,48 @@ class ProductInput(BaseModel):
                     "avg_price": 150.0,
                     "daily_turnover": 0.0,
                     "cold_start": True,
+                }
+            ]
+        }
+    }
+
+
+class BatchPredictRequest(BaseModel):
+    products: list[dict] = Field(
+        ..., min_length=1, max_length=MAX_BATCH_SIZE,
+        description=(
+            f"Seznam produktů pro hromadnou predikci (1–{MAX_BATCH_SIZE} položek). "
+            "Každý produkt je validován individuálně."
+        ),
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "products": [
+                        {
+                            "product_id": "SKU-001",
+                            "product_weight_g": 500,
+                            "product_length_cm": 20,
+                            "product_height_cm": 10,
+                            "product_width_cm": 15,
+                            "category_group": "electronics",
+                            "avg_price": 150.0,
+                            "cold_start": True,
+                        },
+                        {
+                            "product_id": "SKU-002",
+                            "product_weight_g": 12000,
+                            "product_length_cm": 60,
+                            "product_height_cm": 40,
+                            "product_width_cm": 50,
+                            "category_group": "furniture",
+                            "avg_price": 800.0,
+                            "daily_turnover": 0.3,
+                            "cold_start": False,
+                        },
+                    ]
                 }
             ]
         }

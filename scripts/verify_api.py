@@ -119,6 +119,170 @@ def main():
         except Exception as e:
             check(f"POST /predict full model (error: {e})", False)
 
+        try:
+            payload = json.dumps({
+                "products": [
+                    {
+                        "product_id": "BATCH-A",
+                        "product_weight_g": 500,
+                        "product_length_cm": 20,
+                        "product_height_cm": 10,
+                        "product_width_cm": 15,
+                        "category_group": "electronics",
+                        "avg_price": 150.0,
+                        "cold_start": True,
+                    },
+                    {
+                        "product_id": "BATCH-B",
+                        "product_weight_g": 12000,
+                        "product_length_cm": 60,
+                        "product_height_cm": 40,
+                        "product_width_cm": 50,
+                        "category_group": "furniture",
+                        "avg_price": 800.0,
+                        "daily_turnover": 0.3,
+                        "cold_start": False,
+                    },
+                    {
+                        "product_id": "BATCH-C",
+                        "product_weight_g": 200,
+                        "product_length_cm": 15,
+                        "product_height_cm": 5,
+                        "product_width_cm": 10,
+                        "category_group": "books_media",
+                        "avg_price": 50.0,
+                        "cold_start": True,
+                    },
+                ]
+            }).encode()
+            req = urllib.request.Request("http://127.0.0.1:8765/predict/batch", data=payload, headers={"Content-Type": "application/json"})
+            resp = urllib.request.urlopen(req)
+            data = json.loads(resp.read())
+            check("POST /predict/batch valid 3 produkty -> 200", resp.status == 200)
+            check(f"Batch summary.total={data.get('summary', {}).get('total')}", data.get("summary", {}).get("total") == 3)
+            check(f"Batch summary.ok_count={data.get('summary', {}).get('ok_count')}", data.get("summary", {}).get("ok_count") == 3)
+            check(f"Batch summary.error_count={data.get('summary', {}).get('error_count')}", data.get("summary", {}).get("error_count") == 0)
+            results = data.get("results", [])
+            check(f"Batch results pocet={len(results)}", len(results) == 3)
+            check("Batch all results status=ok", all(r.get("status") == "ok" for r in results))
+        except Exception as e:
+            check(f"POST /predict/batch valid (error: {e})", False)
+
+        try:
+            payload = json.dumps({"products": []}).encode()
+            req = urllib.request.Request("http://127.0.0.1:8765/predict/batch", data=payload, headers={"Content-Type": "application/json"})
+            try:
+                urllib.request.urlopen(req)
+                check("POST /predict/batch prazdny -> 422", False)
+            except urllib.error.HTTPError as he:
+                check(f"POST /predict/batch prazdny -> {he.code}", he.code == 422)
+        except Exception as e:
+            check(f"POST /predict/batch prazdny (error: {e})", False)
+
+        try:
+            over_limit_products = [
+                {
+                    "product_weight_g": 500,
+                    "product_length_cm": 20,
+                    "product_height_cm": 10,
+                    "product_width_cm": 15,
+                    "category_group": "electronics",
+                    "avg_price": 150.0,
+                    "cold_start": True,
+                }
+                for _ in range(101)
+            ]
+            payload = json.dumps({"products": over_limit_products}).encode()
+            req = urllib.request.Request("http://127.0.0.1:8765/predict/batch", data=payload, headers={"Content-Type": "application/json"})
+            try:
+                urllib.request.urlopen(req)
+                check("POST /predict/batch 101 produktu -> 422", False)
+            except urllib.error.HTTPError as he:
+                check(f"POST /predict/batch 101 produktu -> {he.code}", he.code == 422)
+        except Exception as e:
+            check(f"POST /predict/batch over limit (error: {e})", False)
+
+        try:
+            payload = json.dumps({
+                "products": [
+                    {
+                        "product_id": "OK-1",
+                        "product_weight_g": 500,
+                        "product_length_cm": 20,
+                        "product_height_cm": 10,
+                        "product_width_cm": 15,
+                        "category_group": "electronics",
+                        "avg_price": 150.0,
+                        "cold_start": True,
+                    },
+                    {
+                        "product_id": "OK-2",
+                        "product_weight_g": 800,
+                        "product_length_cm": 25,
+                        "product_height_cm": 12,
+                        "product_width_cm": 18,
+                        "category_group": "home_garden",
+                        "avg_price": 220.0,
+                        "cold_start": True,
+                    },
+                    {
+                        "product_id": "BAD-1",
+                        "product_weight_g": 999999,
+                        "product_length_cm": 20,
+                        "product_height_cm": 10,
+                        "product_width_cm": 15,
+                        "category_group": "electronics",
+                        "avg_price": 150.0,
+                        "cold_start": True,
+                    },
+                ]
+            }).encode()
+            req = urllib.request.Request("http://127.0.0.1:8765/predict/batch", data=payload, headers={"Content-Type": "application/json"})
+            resp = urllib.request.urlopen(req)
+            data = json.loads(resp.read())
+            check("POST /predict/batch partial -> 200", resp.status == 200)
+            check(f"Batch partial ok_count={data.get('summary', {}).get('ok_count')}", data.get("summary", {}).get("ok_count") == 2)
+            check(f"Batch partial error_count={data.get('summary', {}).get('error_count')}", data.get("summary", {}).get("error_count") == 1)
+            results = data.get("results", [])
+            check("Batch partial result[2].status=error", len(results) >= 3 and results[2].get("status") == "error")
+            check("Batch partial result[2].product_id=BAD-1", len(results) >= 3 and results[2].get("product_id") == "BAD-1")
+        except Exception as e:
+            check(f"POST /predict/batch partial (error: {e})", False)
+
+        try:
+            payload = json.dumps({
+                "products": [
+                    {
+                        "product_id": "SKU-TEST",
+                        "product_weight_g": 500,
+                        "product_length_cm": 20,
+                        "product_height_cm": 10,
+                        "product_width_cm": 15,
+                        "category_group": "electronics",
+                        "avg_price": 150.0,
+                        "cold_start": True,
+                    }
+                ]
+            }).encode()
+            req = urllib.request.Request("http://127.0.0.1:8765/predict/batch", data=payload, headers={"Content-Type": "application/json"})
+            resp = urllib.request.urlopen(req)
+            data = json.loads(resp.read())
+            results = data.get("results", [])
+            check("Batch product_id echo: results[0].product_id=SKU-TEST", len(results) >= 1 and results[0].get("product_id") == "SKU-TEST")
+        except Exception as e:
+            check(f"POST /predict/batch product_id echo (error: {e})", False)
+
+        try:
+            payload = json.dumps({"products": "not a list"}).encode()
+            req = urllib.request.Request("http://127.0.0.1:8765/predict/batch", data=payload, headers={"Content-Type": "application/json"})
+            try:
+                urllib.request.urlopen(req)
+                check("POST /predict/batch wrong shape -> 422", False)
+            except urllib.error.HTTPError as he:
+                check(f"POST /predict/batch wrong shape -> {he.code}", he.code == 422)
+        except Exception as e:
+            check(f"POST /predict/batch wrong shape (error: {e})", False)
+
         log_path = Path("logs/api_audit.log")
         check("Audit log existuje po requestech", log_path.exists())
 

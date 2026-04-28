@@ -15,7 +15,14 @@ if str(_PROJECT_ROOT) not in sys.path:
 from fastapi import FastAPI, Depends, HTTPException, Header
 
 from api.constants import CATEGORY_GROUPS
-from api.schemas import ProductInput, PredictionResponse, HealthResponse, CategoriesResponse
+from api.schemas import (
+    ProductInput,
+    PredictionResponse,
+    HealthResponse,
+    CategoriesResponse,
+    BatchPredictRequest,
+    BatchPredictResponse,
+)
 from api.services import PredictionService
 
 logging.basicConfig(
@@ -65,6 +72,15 @@ app = FastAPI(
 )
 def predict(product: ProductInput):
     return service.predict(product)
+
+
+@app.post(
+    "/predict/batch",
+    response_model=BatchPredictResponse,
+    dependencies=[Depends(verify_api_key)],
+)
+def predict_batch(request: BatchPredictRequest):
+    return service.predict_batch(request)
 
 
 @app.get("/health", response_model=HealthResponse)
