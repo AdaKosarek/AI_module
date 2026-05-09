@@ -244,9 +244,17 @@ if submitted:
         st.bar_chart(proba_df.set_index("Třída"))
 
     st.subheader("Podobné produkty (KNN)")
-    display_cols = ["rank", "distance", "product_weight_g", "volume_cm3", "category_group", "true_class"]
-    available_cols = [c for c in display_cols if c in neighbors.columns]
-    st.dataframe(neighbors[available_cols].head(5), width="stretch")
+    display_df = neighbors.head(5).rename(columns={
+        "product_weight_g": "weight_g",
+        "category_group": "category",
+        "true_class": "storage_class",
+    })
+    display_df["storage_class_cz"] = display_df["storage_class"].map(
+        lambda c: STORAGE_CLASS_CZ.get(c, c)
+    )
+    display_cols = ["rank", "distance", "weight_g", "volume_cm3", "category", "storage_class", "storage_class_cz"]
+    available_cols = [c for c in display_cols if c in display_df.columns]
+    st.dataframe(display_df[available_cols], width="stretch")
 
     st.subheader("Vysvětlení")
     explanation = generate_explanation(pred_cz, confidence, neighbors)

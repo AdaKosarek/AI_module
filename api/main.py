@@ -59,7 +59,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Warehouse Slotting AI",
     description="REST API pro doporučení typu skladové lokace pro nové zboží",
-    version="1.0.0",
     lifespan=lifespan,
 )
 
@@ -88,7 +87,6 @@ def health():
     return HealthResponse(
         status="ok",
         model="xgboost",
-        version="1.0.0",
         cold_start_available=True,
     )
 

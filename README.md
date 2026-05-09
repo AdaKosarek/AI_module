@@ -116,7 +116,7 @@ AI_module/
 
 | Fáze | Název | Stručný popis |
 |------|-------|---------------|
-| **1** | Načtení dat | Propojení 9 CSV z Olist datasetu, překlad kategorií, výpočet obrátkovosti |
+| **1** | Načtení dat | Propojení 6 CSV z Olist datasetu (products, order_items, orders, sellers, reviews, category_translation), překlad kategorií, výpočet obrátkovosti |
 | **2** | Čištění dat | Doplnění chybějících hodnot, seskupení 74 kategorií do 13 skupin |
 | **3** | Labeling | Pravidlové přiřazení 5 typů skladových lokací (shelf, front, pallet, floor, special) |
 | **4** | Pipeliny | Výběr 10 číselných + 1 příznaků, preprocessing pipeline |

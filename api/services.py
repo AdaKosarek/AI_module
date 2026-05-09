@@ -73,10 +73,11 @@ class PredictionService:
 
         self.le = LabelEncoder()
         self.le.fit(self.y_train)
-        assert list(self.le.classes_) == CLASS_ORDER_LE, (
-            f"LabelEncoder classes {list(self.le.classes_)} != expected "
-            f"{CLASS_ORDER_LE}"
-        )
+        if list(self.le.classes_) != CLASS_ORDER_LE:
+            raise RuntimeError(
+                f"LabelEncoder classes {list(self.le.classes_)} != expected "
+                f"{CLASS_ORDER_LE}. Trénovací data mají jiné pořadí tříd než API očekává."
+            )
 
         self._setup_audit_logger()
 
@@ -234,7 +235,6 @@ class PredictionService:
             knn_agreement=knn_agreement,
             explanation=explanation,
             cold_start_mode=product.cold_start,
-            model_version="1.0.0",
         )
 
         self._log_audit(product, response)

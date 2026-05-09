@@ -1,6 +1,7 @@
 """Streamlit prototyp. Vola REST API misto primych modelu."""
 
 import logging
+import os
 
 import streamlit as st
 import requests
@@ -12,7 +13,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 LIMIT_WEIGHT_G = 50000
 LIMIT_DIMENSION_CM = 150
@@ -65,7 +66,7 @@ st.sidebar.markdown(f"**API**: `{API_URL}`")
 
 try:
     health = requests.get(f"{API_URL}/health", timeout=3).json()
-    st.sidebar.success(f"API: {health['status']} (v{health['version']})")
+    st.sidebar.success(f"API: {health['status']}")
 except requests.RequestException as exc:
     logger.error("API health check selhal: %s", exc)
     st.sidebar.error(

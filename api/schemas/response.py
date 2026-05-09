@@ -22,13 +22,11 @@ class PredictionResponse(BaseModel):
     knn_agreement: str
     explanation: str
     cold_start_mode: bool
-    model_version: str
 
 
 class HealthResponse(BaseModel):
     status: str
     model: str
-    version: str
     cold_start_available: bool
 
 

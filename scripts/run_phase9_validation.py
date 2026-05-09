@@ -114,13 +114,13 @@ def main():
     print("\n" + "=" * 70)
     print("VALIDACNI SCENAR — 10 PRODUKTU")
     print("=" * 70)
-    print("\n  S obratkovosti (plny model, F1=0.9866):")
+    print("\n  S obratkovosti (plny model):")
     for _, row in df.iterrows():
         status = "OK" if row["correct"] else "MISS"
         print(f"    [{status}] true={row['true_class']:<20} pred={row['predicted_class']:<20} conf={row['confidence']:.2f} knn={row['knn_agreement']:.0%}")
     print(f"    Presnost: {df['correct'].mean():.0%}")
 
-    print(f"\n  Bez obratkovosti (cold-start model, F1=0.8305):")
+    print(f"\n  Bez obratkovosti (cold-start model):")
     for _, row in df_cs.iterrows():
         status = "OK" if row["correct"] else "MISS"
         print(f"    [{status}] true={row['true_class']:<20} pred={row['predicted_class']:<20} conf={row['confidence']:.2f} knn={row['knn_agreement']:.0%}")
