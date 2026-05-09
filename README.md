@@ -13,7 +13,7 @@ Systém je nasaditelný jako REST API (FastAPI) se Streamlit klientem nad ním.
 ## Stromová struktura projektu
 
 ```
-bakalarka/
+AI_module/
 ├── pyproject.toml              # závislosti projektu (uv)
 ├── uv.lock                 
 ├── Dockerfile                  # kontejnerizace API
